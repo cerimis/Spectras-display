@@ -22,7 +22,7 @@ d.daten<- data.frame(
              "/home/pdietiker/Dokumente/PNNL/Water/H2O_25T.TXT",
              "/home/pdietiker/Dokumente/PNNL/n-Butane/Butane_25T.TXT",
              "/home/pdietiker/Dokumente/PNNL/Carbon_dioxide/CO2_25T.TXT"
-             ),
+  ),
   stringsAsFactors = FALSE
 )
 
@@ -35,8 +35,8 @@ t.profil="Gausss"
 FWHMG <-1
 # Breite der Lorenzlinie
 FWHML<-0.1
-#x-Achse als Piezo-Spannung ausgeben
-t.spannung<-FALSE
+# x-Achse transformieren (0 für Wellenzahl, 1 für Piezospannung , 2 für Wellenlänge)
+t.xtransform <- "2"
 #2 Punkte der linearen Kalibrationskurve (Spannung, Wellenzahl)
 t.kal <-rbind(c(0.5,3070),c(1.4,2950))
 # Als Transmission anzeigen?
@@ -60,7 +60,7 @@ f.Sum_handler_ein<-function(widget, playState){
   .GlobalEnv$t.spekplot.sum <- cbind(.GlobalEnv$d.spektren[1,"Spektrum"][[1]]["Wavenumber"],t.sum+playState$env$Offset)
   playState$env$Sumplot<-.GlobalEnv$t.spekplot.sum
   callArg(playState, "data") <- quote(Sumplot)
-#   playReplot(playState)
+  #   playReplot(playState)
   lines(t.spekplot.sum,type="l",lwd=0.5)
 }
 #Definition der Funktion zum einschalten der Summe ohne erste Komponente in der Playwith Graphik
@@ -73,7 +73,7 @@ f.Sumdiff_handler_ein<-function(widget, playState){
   .GlobalEnv$t.spekplot.sumdiff <- cbind(.GlobalEnv$d.spektren[1,"Spektrum"][[1]]["Wavenumber"],t.sumdiff+playState$env$Offset)
   playState$env$Sumdiffplot<-.GlobalEnv$t.spekplot.sumdiff
   callArg(playState, "data") <- quote(Sumdiffplot)
-#   playReplot(playState)
+  #   playReplot(playState)
   lines(t.spekplot.sumdiff,type="l",lwd=0.5,col="red")
 }
 #Definition der Funktion zum ausschalten der FFT FIlterung in einer Playwith graphik
@@ -96,7 +96,7 @@ for(i in 1:dim(d.daten)[1])
   colnames(d.import1)<-c("Wavenumber","Absorbance")
   
   d.import1<-d.import1[d.import1$Wavenumber>=t.bereich[1]& d.import1$Wavenumber<=t.bereich[2],]
-
+  
   if(dim(d.import1)[1]%%2)
   {  
     d.import1<-d.import1[-dim(d.import1)[1],]
@@ -160,32 +160,47 @@ for(i in 1:dim(d.daten)[1])
   } 
 }
 
-if (t.spannung)
-{
-  for(i in 1:dim(d.daten)[1])
-  {
-    if(t.transmission)
-    {
-      colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage","Transmission")
-    }else
-    {
-      colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage","Absorbance")
-    }
-    test <- d.spektren[[i,"Spektrum"]]
-    test$Voltage <- (test$Voltage-min(t.kal[,2]))*-diff(range(t.kal[,1]))/(diff(range(t.kal[,2])))+max(t.kal[,1])
-    test <- test[test$Voltage>=min(t.kal[,1]) & test$Voltage<=max(t.kal[,1]),]
-    if(t.transmission) test$Transmission <- 10^(-test$Transmission)
-    d.spektren[[i,"Spektrum"]] <- test
-  }
-}else
-{ for(i in 1:dim(d.daten)[1])
-  {
-    colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavenumber","Transmission")
-    test <- d.spektren[[i,"Spektrum"]]
-    if(t.transmission) test$Transmission <- 10^(-test$Transmission)
-    d.spektren[[i,"Spektrum"]] <- test
-  }
-}
+switch(t.xtransform,
+       "1" = {for(i in 1:dim(d.daten)[1])
+       {
+         if(t.transmission)
+         {
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage","Transmission")
+         }else
+         {
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage","Absorbance")
+         }
+         test <- d.spektren[[i,"Spektrum"]]
+         test$Voltage <- (test$Voltage-min(t.kal[,2]))*-diff(range(t.kal[,1]))/(diff(range(t.kal[,2])))+max(t.kal[,1])
+         test <- test[test$Voltage>=min(t.kal[,1]) & test$Voltage<=max(t.kal[,1]),]
+         if(t.transmission) test$Transmission <- 10^(-test$Transmission)
+         d.spektren[[i,"Spektrum"]] <- test
+       }
+       },
+       "2" = {for(i in 1:dim(d.daten)[1])
+       {
+         if(t.transmission)
+         {
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavelength","Transmission")
+         }else
+         {
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavelength","Absorbance")
+         }
+         test <- d.spektren[[i,"Spektrum"]]
+         test$Wavelength <- 1/(100*test$Wavelength)*10^6
+         if(t.transmission) test$Transmission <- 10^(-test$Transmission)
+         d.spektren[[i,"Spektrum"]] <- test
+       }
+       },
+       "0" = {for(i in 1:dim(d.daten)[1])
+       {
+         colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavenumber","Transmission")
+         test <- d.spektren[[i,"Spektrum"]]
+         if(t.transmission) test$Transmission <- 10^(-test$Transmission)
+         d.spektren[[i,"Spektrum"]] <- test
+       }
+       }
+)
 #Maximale Intensität aller Spektren
 d.maxint=max(unlist(lapply(d.spektren[,"Spektrum"],"[[",2)))
 #Maximaler ppm-Wert
