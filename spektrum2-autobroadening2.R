@@ -25,7 +25,7 @@ t.source<-"HITRAN"
 t.convert="TRUE"
 t.iso<-"All"
 # Bereich des Spektrums
-t.bereich<-c(2800,4000)
+t.bereich<-c(2800,2805)
 # kleinste Intensität
 t.int<-1e-24
 # Temperatur
@@ -35,10 +35,10 @@ press <- 10^5
 # Masse
 M <- 18
 # Linienprofil (Gauss, Voigt, Lorenz)
-t.profil="Gauss"
+t.profil="None"
 #breite der Gausslinie (Doppler)
 FWHMG <- mean(t.bereich)*sqrt(log(2))*sqrt(2*k*Temp*na*1000/(M*c^2))
-FWHMG <-1
+FWHMG <-0.01
 #x-Achse als Piezo-Spannung ausgeben
 t.spannung<-FALSE
 #2 Punkte der linearen Kalibrationskurve (Spannung, Wellenzahl)
@@ -46,7 +46,7 @@ t.kal <-rbind(c(0.5,3070),c(1.4,2950))
 # Breite der Lorenzlinie (ohne Druckverbreiterung)
 FWHML<-0.1
 # Schrittweite
-t.schritt<-0.05
+t.schritt<-0.0001
 #Gaussfunktion auf höhe normiert
 t.Gaussfunktionh <- function(FWHM,Wellenzahl,Int,x0){Int*exp(-1/2*((Wellenzahl-x0)/(FWHM/(2*sqrt(2*log(2)))))^2)}
 #Gaussfunktion auf fläche normiert
@@ -170,7 +170,7 @@ if (t.profil=="Lorentz"| t.profil=="Voigt"){
 if (t.profil=="Gauss") d.spektrumc<-convolve(d.spektrum2[,2],t.lsGtab,type="filter")
 if (t.profil=="Lorentz") d.spektrumc<-convolve(d.spektrum2[,2],t.lsLtab,type="filter")
 if (t.profil=="Voigt") d.spektrumc<-convolve(convolve(d.spektrum2[,2],t.lsGtab,type="filter"),t.lsLtab,type="filter")
-
+if (t.profil=="None") d.spektrumc<-d.spektrum2[,2]
 
 # längen des Spektrums und der Convolution
 ls=length(d.spektrum2[,1])
