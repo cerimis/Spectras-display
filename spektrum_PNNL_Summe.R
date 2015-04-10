@@ -14,7 +14,6 @@ c <- 3*10^8
 #PNNL spektrum
 d.daten<- data.frame(
   Name=c("Ethylenglykol","CH4","C2H6","C3H8","H2O","C4H10","CO2"),
-  ppm=c(0,10^3,0,0,0,0,1),
   Spektrum=c("/home/pdietiker/Dokumente/PNNL/Ethylene_glycol/ETOHOH_50T.TXT",
              "/home/pdietiker/Dokumente/PNNL/Methane/CH4_25T.TXT",
              "/home/pdietiker/Dokumente/PNNL/Ethane/C2H6_25T.TXT",
@@ -27,7 +26,6 @@ d.daten<- data.frame(
 )
 
 # Bereich des Spektrums
-t.bereich<-c(2000,4000)
 
 # Linienprofil (Gauss, Voigt, Lorenz,für keine Faltung:irgend ein anderer String)
 t.profil="Gausss"
@@ -36,11 +34,9 @@ FWHMG <-1
 # Breite der Lorenzlinie
 FWHML<-0.1
 # x-Achse transformieren (0 für Wellenzahl, 1 für Piezospannung , 2 für Wellenlänge)
-t.xtransform <- "2"
 #2 Punkte der linearen Kalibrationskurve (Spannung, Wellenzahl)
 t.kal <-rbind(c(0.5,3070),c(1.4,2950))
 # Als Transmission anzeigen?
-t.transmission <- TRUE
 # Zellenlänge / m
 t.laenge <- 36
 # Schrittweite
@@ -172,7 +168,7 @@ switch(t.xtransform,
          }
          test <- d.spektren[[i,"Spektrum"]]
          test$Voltage <- (test$Voltage-min(t.kal[,2]))*-diff(range(t.kal[,1]))/(diff(range(t.kal[,2])))+max(t.kal[,1])
-         test <- test[test$Voltage>=min(t.kal[,1]) & test$Voltage<=max(t.kal[,1]),]
+         test <- test[test$Voltage>=0 & test$Voltage<=2,]
          if(t.transmission) test$Transmission <- 10^(-test$Transmission)
          d.spektren[[i,"Spektrum"]] <- test
        }
@@ -217,9 +213,27 @@ playwith(
   {
     lines(d.spektren[[i,"Spektrum"]][,1:2],type="l",lwd=0.5,col=palette()[i])
   }
-  templegend<-legend("topright",rep(" ",dim(d.daten)[1]),col=palette()[seq(1,dim(d.daten)[1])],lty=1,pch=".",text.width = (strwidth(paste("aaaaaa",d.maxwidth,toString(d.maxppm)))))
   text(templegend$rect$left+templegend$rect$w,templegend$text$y,mapply(paste,d.spektren$ppm,"ppm",sep=" "),pos=2)
   text(templegend$text$x,templegend$text$y,d.spektren$Name,pos=4)
+}
+,time.mode = TRUE,new = TRUE,
+parameters = list(Offset=100),
+tools=list(Sumein,Sumaus,Sumdiffein))
+
+# graphik zum Drucken
+playwith(
+{
+  plot(d.spektren[[1,"Spektrum"]][,1:2],type="l",ylim=c(0,d.maxint*1.1),col=palette()[1],
+       cex.lab=2, cex.axis=2, cex.main=2, cex.sub=2)
+  par("cex")[2]
+  
+  for(i in 2:dim(d.daten)[1])
+  {
+    lines(d.spektren[[i,"Spektrum"]][,1:2],type="l",lwd=0.5,col=palette()[i])
+  }
+  templegend<-legend("topright",rep(" ",dim(d.daten)[1]),col=palette()[seq(1,dim(d.daten)[1])],lty=1,,lwd=2,pch=".",text.width = 2*(strwidth(paste("aaaaaa",d.maxwidth,toString(d.maxppm)))),y.intersp=2)
+  text(templegend$rect$left+templegend$rect$w,templegend$text$y,mapply(paste,d.spektren$ppm,"ppm",sep=" "),pos=2,cex=2)
+  text(templegend$text$x,templegend$text$y,d.spektren$Name,pos=4,cex=2)
 }
 ,time.mode = TRUE,new = TRUE,
 parameters = list(Offset=100),
