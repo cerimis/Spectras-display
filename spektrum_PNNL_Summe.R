@@ -14,6 +14,7 @@ c <- 3*10^8
 #PNNL spektrum
 d.daten<- data.frame(
   Name=c("Ethylenglykol","CH4","C2H6","C3H8","H2O","C4H10","CO2"),
+  ppm=c(0,10,10,10,10,0,0),
   Spektrum=c("/home/pdietiker/Dokumente/PNNL/Ethylene_glycol/ETOHOH_50T.TXT",
              "/home/pdietiker/Dokumente/PNNL/Methane/CH4_25T.TXT",
              "/home/pdietiker/Dokumente/PNNL/Ethane/C2H6_25T.TXT",
@@ -26,6 +27,7 @@ d.daten<- data.frame(
 )
 
 # Bereich des Spektrums
+t.bereich<-c(2800,3200)
 
 # Linienprofil (Gauss, Voigt, Lorenz,für keine Faltung:irgend ein anderer String)
 t.profil="Gausss"
@@ -34,9 +36,11 @@ FWHMG <-1
 # Breite der Lorenzlinie
 FWHML<-0.1
 # x-Achse transformieren (0 für Wellenzahl, 1 für Piezospannung , 2 für Wellenlänge)
+t.xtransform <- "1"
 #2 Punkte der linearen Kalibrationskurve (Spannung, Wellenzahl)
 t.kal <-rbind(c(0.5,3070),c(1.4,2950))
 # Als Transmission anzeigen?
+t.transmission <- FALSE
 # Zellenlänge / m
 t.laenge <- 36
 # Schrittweite
@@ -209,6 +213,7 @@ d.maxwidth=d.spektren$Name[which.max(unlist(lapply(unlist(lapply(d.spektren[,"Na
 playwith(
 {
   plot(d.spektren[[1,"Spektrum"]][,1:2],type="l",ylim=c(0,d.maxint*1.1),col=palette()[1])
+  
   for(i in 2:dim(d.daten)[1])
   {
     lines(d.spektren[[i,"Spektrum"]][,1:2],type="l",lwd=0.5,col=palette()[i])
