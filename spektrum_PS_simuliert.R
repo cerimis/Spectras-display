@@ -10,7 +10,7 @@ require(playwith)
 #PNNL spektrum
 spekp<-"/home/pdietiker/Dokumente/CH4/CH4_25T.TXT"
 # Hitran Spektrum
-spekh<-"/home/pdietiker/Dokumente/PNNL/PS_sim.par"
+spekh<-"C://Daten//Laser//PS_sim.par"
 # Hitran oder PNNL
 t.source<-"HITRAN"
 # t.source<-"PNNL"
@@ -21,15 +21,19 @@ t.bereich<-c(2800,3200)
 # kleinste IntensitÃ¤t
 t.int<-1e-28
 #breite der Gausslinie
-FWHMG<-10
+FWHMG<-15
 # Breite der Lorenzlinie
 FWHML<-0.5
 # Linienprofil
 t.profil="Voigt"
 # Schrittweite
+t.schritt<-0.1
 #als trtansmission darstellen
 t.transmission=TRUE
-t.schritt<-1/15
+# x-Achse transformieren (0 für Wellenzahl, 1 für Piezospannung , 2 für Wellenlänge)
+t.xtransform <- "1"
+#kalibration der Piezospannung
+t.kal <- rbind(c(0,3086),c(2,3086-220))
 #Gaussfunktion auf hÃ¶he normiert
 t.Gaussfunktionh <- function(FWHM,Wellenzahl,Int,x0){Int*exp(-1/2*((Wellenzahl-x0)/(FWHM/(2*sqrt(2*log(2)))))^2)}
 #Gaussfunktion auf flÃ¤che normiert
@@ -86,7 +90,10 @@ if (t.source=="HITRAN") {
   colnames(d.spektrum2)<-c("Wavenumber","Intensity")
   # EinfÃ¼gen der Linien
   for (n in 1:dim(d.spektrum1)[1]){
-    d.spektrum2[d.spektrum2$Wavenumber==d.spektrum1$Wavenumber[n],"Intensity"]<-d.spektrum1$Intensity[n]
+    if (d.spektrum1$Wavenumber[n] %in% d.spektrum2[,1])
+      d.spektrum2[d.spektrum2$Wavenumber==d.spektrum1$Wavenumber[n],"Intensity"]<-d.spektrum1$Intensity[n]
+    else
+      d.spektrum2 <- rbind(d.spektrum2,d.spektrum1[n,])  
   }
   #invertieren der Tabelle
   d.spektrum2<-d.spektrum2[order(d.spektrum2$Wavenumber,decreasing = TRUE),]
@@ -143,7 +150,49 @@ if (t.profil=="Voigt")
   d.spektrumc2<-as.data.frame(cbind(d.spektrum2[seq((ls-lc)/2+2,(lc+(ls-lc)/2+1)),1],t.stepwidth^2*d.spektrumc))
 else
   d.spektrumc2<-as.data.frame(cbind(d.spektrum2[seq((ls-lc)/2+2,(lc+(ls-lc)/2+1)),1],t.stepwidth*d.spektrumc))
-if(t.transmission) d.spektrumc2[,2] <- 10^(-d.spektrumc2[,2])
+
+#transformation der beiden Achsen
+switch(t.xtransform,
+       "1" = {
+         if(t.transmission)
+         {
+           colnames(d.spektrumc2) <- c("Voltage","Transmission")
+         }else
+         {
+           colnames(d.spektrumc2) <- c("Voltage","Absorbance")
+         }
+         test <- d.spektrumc2
+         test$Voltage <- (test$Voltage-min(t.kal[,2]))*-diff(range(t.kal[,1]))/(diff(range(t.kal[,2])))+max(t.kal[,1])
+         test <- test[test$Voltage>=0 & test$Voltage<=2,]
+         if(t.transmission) test$Transmission <- 10^(-test$Transmission)
+         d.spektrumc2 <- test  
+       },
+       "2" = {
+         if(t.transmission)
+         {
+           colnames(d.spektrumc2) <- c("Wavelength","Transmission")
+         }else
+         {
+           colnames(d.spektrumc2) <- c("Wavelength","Absorbance")
+         }
+         test <- d.spektrumc2
+         test$Wavelength <- 1/(100*test$Wavelength)*10^6
+         if(t.transmission) test$Transmission <- 10^(-test$Transmission)
+         d.spektrumc2 <- test
+       },
+       "0" = {
+         if(t.transmission)
+         {
+           colnames(d.spektrumc2) <- c("Wavelength","Transmission")
+         }else
+         {
+           colnames(d.spektrumc2) <- c("Wavelength","Absorbance")
+         }
+         test <- d.spektrumc2
+         if(t.transmission) test$Transmission <- 10^(-test$Transmission)
+         d.spektrumc2 <- test
+       }
+)
 # Zeichnen des Spektrums
 if (t.source=="PNNL") {
   playwith({
@@ -153,13 +202,21 @@ if (t.source=="PNNL") {
 }
 if (t.source=="HITRAN") {
   playwith({1
-            plot(d.spektrum2[,1:2],type="h",ylim=c(0,max(d.spektrumc2[,2]*1.1)))
+            plot(d.spektrum2[,1:2],type="h",ylim=c(0,max(d.spektrumc2[,2]*1.1)),xlim=c(0,2))
             lines(d.spektrumc2[,1:2],type="l",col="red",lwd=2)
   },time.mode = TRUE, new=TRUE)
 }
 
+# interpoliert das spektrum an points/2 punkte,invertiert das Spektrum und hÃ¤ngt es an das urspÃ¼ngliche an
+points<- 4002
+d.spektruminterpol <- approx (d.spektrumc2,n=points/2)
+d.spektruminterpol2 <- append(d.spektruminterpol$y,rev(d.spektruminterpol$y))
+d.spektrumplot <- append(d.spektrumc2[seq(1,points/2),2],rev(d.spektrumc2[seq(1,points/2),2]))
 #Speichern des Spektrums als asci-file
-write.table(format(d.spektrumc2,digits=7),file="/home/pdietiker/Dokumente/PNNL/PS_simulated.txt",sep="\t", dec=".", row.names=FALSE, col.names=FALSE)
+#write.csv2(d.spektrumplot,file="C://Daten//Laser//PS_simulated5.csv")
+
+write.table(format(t(d.spektruminterpol2),digits=7),file="C://Daten//Laser//PS_simulated5.txt",sep="\t",row.names=FALSE, col.names=FALSE,quote=FALSE)
+# write.table(append(d.spektrumc2[,2],rev(d.spektrumc2[,2]))),file="G://PS_simulated.txt",sep="\t", dec=".", row.names=FALSE, col.names=FALSE)
 
 # Speicher der Spektren separat fÃ¼r PNNL und Hitran
 # if (t.source=="HITRAN") d.spektrumc2hitran<-d.spektrumc2

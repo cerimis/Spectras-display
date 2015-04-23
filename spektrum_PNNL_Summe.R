@@ -14,12 +14,12 @@ c <- 3*10^8
 #PNNL spektrum
 d.daten<- data.frame(
   Name=c("Ethylenglykol","CH4","C2H6","C3H8","H2O","C4H10","CO2"),
-  ppm=c(0,10,10,10,10,0,0),
+  ppm=c(0,1,0,0,50000,0,0),
   Spektrum=c("/home/pdietiker/Dokumente/PNNL/Ethylene_glycol/ETOHOH_50T.TXT",
-             "/home/pdietiker/Dokumente/PNNL/Methane/CH4_25T.TXT",
+             "C://Daten//Laser//CH4_25T.TXT",
              "/home/pdietiker/Dokumente/PNNL/Ethane/C2H6_25T.TXT",
              "/home/pdietiker/Dokumente/PNNL/Propane/C3H8_25T.TXT",
-             "/home/pdietiker/Dokumente/PNNL/Water/H2O_25T.TXT",
+             "C://Daten//Laser//H2O_25T.TXT",
              "/home/pdietiker/Dokumente/PNNL/n-Butane/Butane_25T.TXT",
              "/home/pdietiker/Dokumente/PNNL/Carbon_dioxide/CO2_25T.TXT"
   ),
@@ -36,11 +36,11 @@ FWHMG <-1
 # Breite der Lorenzlinie
 FWHML<-0.1
 # x-Achse transformieren (0 für Wellenzahl, 1 für Piezospannung , 2 für Wellenlänge)
-t.xtransform <- "1"
+t.xtransform <- "0"
 #2 Punkte der linearen Kalibrationskurve (Spannung, Wellenzahl)
 t.kal <-rbind(c(0.5,3070),c(1.4,2950))
 # Als Transmission anzeigen?
-t.transmission <- FALSE
+t.transmission <- TRUE
 # Zellenlänge / m
 t.laenge <- 36
 # Schrittweite
@@ -52,21 +52,13 @@ t.Lorentzfunktionf<- function(FWHM,Wellenzahl, Int,x0){Int*FWHM/(2*pi*((x0-Welle
 
 #Definition der Funktion zum einschalten der Summe in der Playwith Graphik
 f.Sum_handler_ein<-function(widget, playState){
-  t.sum<-rep(0,dim(d.daten)[1])
-  for(i in 1:dim(d.daten)[1])
-  {
-    t.sum<- t.sum+ .GlobalEnv$d.spektren[,"Spektrum"][[i]]["Absorbance"]
-  }
-  .GlobalEnv$t.spekplot.sum <- cbind(.GlobalEnv$d.spektren[1,"Spektrum"][[1]]["Wavenumber"],t.sum+playState$env$Offset)
-  playState$env$Sumplot<-.GlobalEnv$t.spekplot.sum
-  callArg(playState, "data") <- quote(Sumplot)
-  #   playReplot(playState)
-  lines(t.spekplot.sum,type="l",lwd=0.5)
+  
+  lines(d.spektren[[dim(d.spektren)[1],"Spektrum"]][,1:2],type="l",lwd=0.5)
 }
 #Definition der Funktion zum einschalten der Summe ohne erste Komponente in der Playwith Graphik
 f.Sumdiff_handler_ein<-function(widget, playState){
   t.sumdiff<-rep(0,dim(d.daten)[1])
-  for(i in 2:dim(d.daten)[1])
+  for(i in 2:(dim(d.daten)[1]-1))
   {
     t.sumdiff<- t.sumdiff+ .GlobalEnv$d.spektren[,"Spektrum"][[i]]["Absorbance"]
   }
@@ -76,12 +68,12 @@ f.Sumdiff_handler_ein<-function(widget, playState){
   #   playReplot(playState)
   lines(t.spekplot.sumdiff,type="l",lwd=0.5,col="red")
 }
-#Definition der Funktion zum ausschalten der FFT FIlterung in einer Playwith graphik
+#Definition der Funktion zum ausschalten der Summe in einer Playwith graphik
 f.Sum_handler_aus<-function(widget, playState){
   playReplot(playState)
 }
 
-#Playwith objekte zum ein und ausschalten der FFT-Filterung
+#Playwith objekte zum ein und ausschalten der Sume
 Sumein<-list("Sumein","gtk-execute","Summe Einblenden ",callback=f.Sum_handler_ein)
 Sumaus<-list("Sumaus","gtk-execute","Summe Ausblenden ",callback=f.Sum_handler_aus)
 Sumdiffein<-list("Sumdiffein","gtk-execute","Differenzsumme Einblenden ",callback=f.Sumdiff_handler_ein)
@@ -131,8 +123,21 @@ for(i in 1:dim(d.daten)[1])
 {
   d.spektren[[i,"Spektrum"]]$Absorbance=d.spektren[[i,"Spektrum"]]$Absorbance*d.spektren$ppm[i]*t.laenge
 }
+#Summieren der Spektren und anf�gen an d.spektren
+t.sum<-rep(0,dim(d.spektren[[1,"Spektrum"]]["Absorbance"])[1])
+for(i in 1:dim(d.spektren)[1])
+{
+  t.sum<- t.sum + d.spektren[[i,"Spektrum"]]["Absorbance"]
+}
+t.sumspektrum<-data.frame(d.spektren[[1,"Spektrum"]]["Wavenumber"],t.sum)
+d.spektren=rbind(d.spektren,d.spektren["CH4",])
+d.spektren[dim(d.spektren)[1],"Name"]<-"Summe"
+d.spektren[dim(d.spektren)[1],"ppm"]<-0
+d.spektren[[dim(d.spektren)[1],"Spektrum"]]<-t.sumspektrum
+
+
 # Convolution
-for(i in 1:dim(d.daten)[1])
+for(i in 1:(dim(d.daten)[1]+1))
 {
   if (t.profil=="Gauss")
   {
@@ -160,15 +165,16 @@ for(i in 1:dim(d.daten)[1])
   } 
 }
 
+
 switch(t.xtransform,
-       "1" = {for(i in 1:dim(d.daten)[1])
+       "1" = {for(i in 1:(dim(d.daten)[1]+1))
        {
          if(t.transmission)
          {
-           colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage","Transmission")
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage / V","Transmission")
          }else
          {
-           colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage","Absorbance")
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage / V","Absorbance")
          }
          test <- d.spektren[[i,"Spektrum"]]
          test$Voltage <- (test$Voltage-min(t.kal[,2]))*-diff(range(t.kal[,1]))/(diff(range(t.kal[,2])))+max(t.kal[,1])
@@ -177,14 +183,14 @@ switch(t.xtransform,
          d.spektren[[i,"Spektrum"]] <- test
        }
        },
-       "2" = {for(i in 1:dim(d.daten)[1])
+       "2" = {for(i in 1:(dim(d.daten)[1]+1))
        {
          if(t.transmission)
          {
-           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavelength","Transmission")
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavelength / nm","Transmission")
          }else
          {
-           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavelength","Absorbance")
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavelength / nm","Absorbance")
          }
          test <- d.spektren[[i,"Spektrum"]]
          test$Wavelength <- 1/(100*test$Wavelength)*10^6
@@ -192,9 +198,15 @@ switch(t.xtransform,
          d.spektren[[i,"Spektrum"]] <- test
        }
        },
-       "0" = {for(i in 1:dim(d.daten)[1])
+       "0" = {for(i in 1:(dim(d.daten)[1]+1))
        {
-         colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavenumber","Transmission")
+         if(t.transmission)
+         {
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavenumber / cm^-1","Transmission")
+         }else
+         {
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavenumber / cm^-1","Absorbance")
+         }
          test <- d.spektren[[i,"Spektrum"]]
          if(t.transmission) test$Transmission <- 10^(-test$Transmission)
          d.spektren[[i,"Spektrum"]] <- test
@@ -218,6 +230,7 @@ playwith(
   {
     lines(d.spektren[[i,"Spektrum"]][,1:2],type="l",lwd=0.5,col=palette()[i])
   }
+  templegend<-legend("topright",rep(" ",dim(d.daten)[1]+1),col=palette()[seq(1,dim(d.daten)[1]+1)],lty=1,pch=".",text.width = (strwidth(paste("aaaaaa",d.maxwidth,toString(d.maxppm)))))
   text(templegend$rect$left+templegend$rect$w,templegend$text$y,mapply(paste,d.spektren$ppm,"ppm",sep=" "),pos=2)
   text(templegend$text$x,templegend$text$y,d.spektren$Name,pos=4)
 }
@@ -225,24 +238,37 @@ playwith(
 parameters = list(Offset=100),
 tools=list(Sumein,Sumaus,Sumdiffein))
 
+
+##############################################################################3
 # graphik zum Drucken
-playwith(
-{
-  plot(d.spektren[[1,"Spektrum"]][,1:2],type="l",ylim=c(0,d.maxint*1.1),col=palette()[1],
-       cex.lab=2, cex.axis=2, cex.main=2, cex.sub=2)
-  par("cex")[2]
-  
-  for(i in 2:dim(d.daten)[1])
-  {
-    lines(d.spektren[[i,"Spektrum"]][,1:2],type="l",lwd=0.5,col=palette()[i])
-  }
-  templegend<-legend("topright",rep(" ",dim(d.daten)[1]),col=palette()[seq(1,dim(d.daten)[1])],lty=1,,lwd=2,pch=".",text.width = 2*(strwidth(paste("aaaaaa",d.maxwidth,toString(d.maxppm)))),y.intersp=2)
-  text(templegend$rect$left+templegend$rect$w,templegend$text$y,mapply(paste,d.spektren$ppm,"ppm",sep=" "),pos=2,cex=2)
-  text(templegend$text$x,templegend$text$y,d.spektren$Name,pos=4,cex=2)
-}
-,time.mode = TRUE,new = TRUE,
-parameters = list(Offset=100),
-tools=list(Sumein,Sumaus,Sumdiffein))
+#playwith(
+#{
+#  plot(d.spektren[[1,"Spektrum"]][,1:2],type="l",ylim=c(0,d.maxint*1.1),col=palette()[1],
+#       cex.lab=2, cex.axis=2, cex.main=2, cex.sub=2)
+#  par("cex")[2]
+#  
+#  for(i in 2:dim(d.daten)[1])
+#  {
+#    lines(d.spektren[[i,"Spektrum"]][,1:2],type="l",lwd=0.5,col=palette()[i])
+#  }
+#  templegend<-legend("topright",rep(" ",dim(d.daten)[1]),col=palette()[seq(1,dim(d.daten)[1])],lty=1,lwd=2,pch=".",text.width = 2*(strwidth(paste("aaaaaa",d.maxwidth,toString(d.maxppm)))),y.intersp=2)
+#  text(templegend$rect$left+templegend$rect$w,templegend$text$y,mapply(paste,d.spektren$ppm,"ppm",sep=" "),pos=2,cex=2)
+#  text(templegend$text$x,templegend$text$y,d.spektren$Name,pos=4,cex=2)
+#}
+#,time.mode = TRUE,new = TRUE,
+#parameters = list(Offset=100),
+#tools=list(Sumein,Sumaus,Sumdiffein))
+
+
+# interpoliert das spektrum an points/2 punkte,invertiert das Spektrum und hängt es an das urspüngliche an
+points<- 4002
+d.spektruminterpol <- approx (d.spektren[[dim(d.spektren)[1],"Spektrum"]],n=points/2)
+d.spektruminterpol2 <- append(d.spektruminterpol$y,rev(d.spektruminterpol$y))
+write.table(format(t(d.spektruminterpol2),digits=7),file="C://Daten//Laser//CH4_simulated.txt",sep="\t",row.names=FALSE, col.names=FALSE,quote=FALSE)
+
+
+
+
 
 # Speicher der Spektren separat für PNNL und Hitran
 # if (t.source=="HITRAN") d.spektrumc2hitran<-d.spektrumc2
