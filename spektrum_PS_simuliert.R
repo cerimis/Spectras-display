@@ -30,7 +30,7 @@ t.profil="Voigt"
 t.schritt<-0.1
 #als trtansmission darstellen
 t.transmission=TRUE
-# x-Achse transformieren (0 für Wellenzahl, 1 für Piezospannung , 2 für Wellenlänge)
+# x-Achse transformieren (0 f?r Wellenzahl, 1 f?r Piezospannung , 2 f?r Wellenl?nge)
 t.xtransform <- "1"
 #kalibration der Piezospannung
 t.kal <- rbind(c(0,3086),c(2,3086-220))
@@ -183,10 +183,10 @@ switch(t.xtransform,
        "0" = {
          if(t.transmission)
          {
-           colnames(d.spektrumc2) <- c("Wavelength","Transmission")
+           colnames(d.spektrumc2) <- c("Wavenumber","Transmission")
          }else
          {
-           colnames(d.spektrumc2) <- c("Wavelength","Absorbance")
+           colnames(d.spektrumc2) <- c("Wavenumber","Absorbance")
          }
          test <- d.spektrumc2
          if(t.transmission) test$Transmission <- 10^(-test$Transmission)
@@ -196,14 +196,12 @@ switch(t.xtransform,
 # Zeichnen des Spektrums
 if (t.source=="PNNL") {
   playwith({
-    plot(d.spektrum2[,1:2],type="l",ylim=c(0,max(d.spektrumc2[,2]*1.1)))
-    lines(d.spektrumc2[,1:2],type="l",col="red",lwd=2)
+    plot(d.spektrumc2[,1:2],type="l",ylim=c(0,max(d.spektrumc2[,2]*1.1)))
   },time.mode = TRUE, new=TRUE)
 }
 if (t.source=="HITRAN") {
   playwith({1
-            plot(d.spektrum2[,1:2],type="h",ylim=c(0,max(d.spektrumc2[,2]*1.1)),xlim=c(0,2))
-            lines(d.spektrumc2[,1:2],type="l",col="red",lwd=2)
+            plot(d.spektrumc2[,1:2],type="l",ylim=c(0,max(d.spektrumc2[,2]*1.1)))
   },time.mode = TRUE, new=TRUE)
 }
 

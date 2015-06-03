@@ -14,7 +14,7 @@ c <- 3*10^8
 #PNNL spektrum
 d.daten<- data.frame(
   Name=c("Ethylenglykol","CH4","C2H6","C3H8","H2O","C4H10","CO2"),
-  ppm=c(0,1,0,0,50000,0,0),
+  ppm=c(0,1,0,0,0,0,0),
   Spektrum=c("/home/pdietiker/Dokumente/PNNL/Ethylene_glycol/ETOHOH_50T.TXT",
              "C://Daten//Laser//CH4_25T.TXT",
              "/home/pdietiker/Dokumente/PNNL/Ethane/C2H6_25T.TXT",
@@ -36,9 +36,9 @@ FWHMG <-1
 # Breite der Lorenzlinie
 FWHML<-0.1
 # x-Achse transformieren (0 für Wellenzahl, 1 für Piezospannung , 2 für Wellenlänge)
-t.xtransform <- "0"
+t.xtransform <- "1"
 #2 Punkte der linearen Kalibrationskurve (Spannung, Wellenzahl)
-t.kal <-rbind(c(0.5,3070),c(1.4,2950))
+t.kal <-rbind(c(0,3086),c(2,3086-220))
 # Als Transmission anzeigen?
 t.transmission <- TRUE
 # Zellenlänge / m
@@ -258,6 +258,14 @@ tools=list(Sumein,Sumaus,Sumdiffein))
 #,time.mode = TRUE,new = TRUE,
 #parameters = list(Offset=100),
 #tools=list(Sumein,Sumaus,Sumdiffein))
+
+
+# interpoliert das spektrum an points/2 punkte,invertiert das Spektrum und hängt es an das urspüngliche an
+points<- 4002
+d.spektruminterpol <- approx (d.spektren[[dim(d.spektren)[1],"Spektrum"]],n=points/2)
+d.spektruminterpol2 <- append(d.spektruminterpol$y,rev(d.spektruminterpol$y))
+write.table(format(t(d.spektruminterpol2),digits=7),file="C://Daten//Laser//CH4_simulated.txt",sep="\t",row.names=FALSE, col.names=FALSE,quote=FALSE)
+
 
 
 # Speicher der Spektren separat für PNNL und Hitran
