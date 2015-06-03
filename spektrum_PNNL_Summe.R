@@ -123,7 +123,7 @@ for(i in 1:dim(d.daten)[1])
 {
   d.spektren[[i,"Spektrum"]]$Absorbance=d.spektren[[i,"Spektrum"]]$Absorbance*d.spektren$ppm[i]*t.laenge
 }
-#Summieren der Spektren und anf�gen an d.spektren
+#Summieren der Spektren und anf?gen an d.spektren
 t.sum<-rep(0,dim(d.spektren[[1,"Spektrum"]]["Absorbance"])[1])
 for(i in 1:dim(d.spektren)[1])
 {
@@ -171,10 +171,10 @@ switch(t.xtransform,
        {
          if(t.transmission)
          {
-           colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage / V","Transmission")
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage","Transmission")
          }else
          {
-           colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage / V","Absorbance")
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Voltage","Absorbance")
          }
          test <- d.spektren[[i,"Spektrum"]]
          test$Voltage <- (test$Voltage-min(t.kal[,2]))*-diff(range(t.kal[,1]))/(diff(range(t.kal[,2])))+max(t.kal[,1])
@@ -187,10 +187,10 @@ switch(t.xtransform,
        {
          if(t.transmission)
          {
-           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavelength / nm","Transmission")
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavelength","Transmission")
          }else
          {
-           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavelength / nm","Absorbance")
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavelength","Absorbance")
          }
          test <- d.spektren[[i,"Spektrum"]]
          test$Wavelength <- 1/(100*test$Wavelength)*10^6
@@ -202,10 +202,10 @@ switch(t.xtransform,
        {
          if(t.transmission)
          {
-           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavenumber / cm^-1","Transmission")
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavenumber","Transmission")
          }else
          {
-           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavenumber / cm^-1","Absorbance")
+           colnames(d.spektren[[i,"Spektrum"]]) <- c("Wavenumber","Absorbance")
          }
          test <- d.spektren[[i,"Spektrum"]]
          if(t.transmission) test$Transmission <- 10^(-test$Transmission)
@@ -263,10 +263,9 @@ tools=list(Sumein,Sumaus,Sumdiffein))
 # interpoliert das spektrum an points/2 punkte,invertiert das Spektrum und hängt es an das urspüngliche an
 points<- 4002
 d.spektruminterpol <- approx (d.spektren[[dim(d.spektren)[1],"Spektrum"]],n=points/2)
+d.spektruminterpol$y <-rev(d.spektruminterpol$y 
 d.spektruminterpol2 <- append(d.spektruminterpol$y,rev(d.spektruminterpol$y))
 write.table(format(t(d.spektruminterpol2),digits=7),file="C://Daten//Laser//CH4_simulated.txt",sep="\t",row.names=FALSE, col.names=FALSE,quote=FALSE)
-
-
 
 
 
